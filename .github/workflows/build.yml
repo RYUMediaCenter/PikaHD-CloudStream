@@ -25,8 +25,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # GitHub's Ubuntu runner already includes Android SDK. Avoid sdkmanager's
+      # obsolete "tools" package, which caused the previous job to fail.
+      - name: Configure Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          test -d "$ANDROID_HOME/platform-tools"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
