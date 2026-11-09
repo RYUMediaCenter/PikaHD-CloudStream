@@ -115,7 +115,7 @@ class AuthorizedCatalogProvider : MainAPI() {
         val mediatype: String,
         val title: String?
     ) {
-        fun toSearchResponse(provider: InternetArchiveProvider): SearchResponse {
+        fun toSearchResponse(provider: AuthorizedCatalogProvider): SearchResponse {
             val type = if (mediatype == "audio") {
                 TvType.Audio
             } else TvType.Movie
@@ -250,7 +250,7 @@ class AuthorizedCatalogProvider : MainAPI() {
             return document.body().html()
         }
 
-        suspend fun toLoadResponse(provider: InternetArchiveProvider): LoadResponse {
+        suspend fun toLoadResponse(provider: AuthorizedCatalogProvider): LoadResponse {
             val videoFiles = files.asSequence()
                 .filter {
                     it.lengthInSeconds >= 10.0 &&
