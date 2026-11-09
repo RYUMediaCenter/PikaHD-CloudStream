@@ -15,7 +15,7 @@ import com.lagradost.cloudstream3.TvType
 class AuthorizedCatalogProvider : MainAPI() {
     override var mainUrl = "https://example.org"
     override var name = "Authorized Media Catalog"
-    override val lang = "en"
+    override var lang = "en"
     override val hasMainPage = false
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
