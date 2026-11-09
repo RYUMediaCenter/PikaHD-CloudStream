@@ -57,10 +57,10 @@ class AuthorizedCatalogProvider : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         return try {
-            val query = "mediatype:movies AND licenseurl:http*publicdomain*"
+            val query = "licenseurl:http*publicdomain*"
             val responseText = app.get("$mainUrl/advancedsearch.php?q=${query.encodeUri()}&fl[]=identifier&fl[]=title&fl[]=mediatype&rows=26&page=$page&output=json").text
             val featured = tryParseJson<SearchResult>(responseText)
-            val homePageList = featured?.response?.docs?.map { it.toSearchResponse(this) } ?: emptyList()
+            val homePageList = featured?.response?.docs?.filter { it.mediatype == "movies" }?.map { it.toSearchResponse(this) } ?: emptyList()
             newHomePageResponse(
                 listOf(
                     HomePageList("Featured", homePageList, true)
@@ -74,10 +74,10 @@ class AuthorizedCatalogProvider : MainAPI() {
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
         return try {
-            val searchQuery = "mediatype:movies AND licenseurl:http*publicdomain* AND (${query})"
+            val searchQuery = "licenseurl:http*publicdomain* AND (${query})"
             val responseText = app.get("$mainUrl/advancedsearch.php?q=${searchQuery.encodeUri()}&fl[]=identifier&fl[]=title&fl[]=mediatype&rows=26&page=$page&output=json").text
             val res = tryParseJson<SearchResult>(responseText)
-            res?.response?.docs?.map {
+            res?.response?.docs?.filter { it.mediatype == "movies" }?.map {
                 it.toSearchResponse(this)
             }?.toNewSearchResponseList()
         } catch (e: Exception) {
@@ -92,7 +92,7 @@ class AuthorizedCatalogProvider : MainAPI() {
             val responseText = app.get("$mainUrl/metadata/$identifier").text
             val res = mapper.readValue<MetadataResult>(responseText)
             val license = res.metadata.licenseurl.orEmpty()
-            if (!license.contains("publicdomain/mark/1.0") && !license.contains("publicdomain/zero/1.0")) {
+            if (!license.contains("publicdomain")) {
                 throw ErrorLoadingException("This item is not marked as public domain.")
             }
             res.toLoadResponse(this)
