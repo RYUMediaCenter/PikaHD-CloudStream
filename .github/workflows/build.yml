@@ -1,4 +1,4 @@
-name: Build CloudStream plugin
+name: Build and publish CloudStream repository
 
 on:
   push:
@@ -8,14 +8,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -25,13 +27,38 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "7.3.3"
 
-      - name: Build plugin
-        run: gradle make
+      - name: Build plugin and repository JSON
+        run: gradle make makePluginsJson
 
-      - name: Upload .cs3 artifacts
+      - name: Stage plugin files
+        shell: bash
+        run: |
+          set -e
+          mkdir -p /tmp/cloudstream-publish
+          find . -type f -path "*/build/*.cs3" -exec cp {} /tmp/cloudstream-publish/ \;
+          cp build/plugins.json /tmp/cloudstream-publish/plugins.json
+          test -s /tmp/cloudstream-publish/plugins.json
+          ls -lah /tmp/cloudstream-publish
+
+      - name: Publish repository branch
+        if: github.event_name != 'pull_request'
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan builds
+          git rm -rf . || true
+          cp -R /tmp/cloudstream-publish/. .
+          git add .
+          git commit -m "Publish CloudStream plugins for $GITHUB_SHA"
+          git push origin builds --force
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: cloudstream-plugin
-          path: "**/build/*.cs3"
+          path: /tmp/cloudstream-publish/*
           if-no-files-found: error
