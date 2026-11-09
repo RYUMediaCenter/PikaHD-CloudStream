@@ -28,15 +28,15 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "7.3.3"
+          gradle-version: "7.4"
 
       - name: Build plugin and repository JSON
-        run: gradle make makePluginsJson
+        run: gradle --no-daemon --stacktrace make makePluginsJson
 
       - name: Stage plugin files
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p /tmp/cloudstream-publish
           find . -type f -path "*/build/*.cs3" -exec cp {} /tmp/cloudstream-publish/ \;
           cp build/plugins.json /tmp/cloudstream-publish/plugins.json
@@ -46,7 +46,7 @@ jobs:
       - name: Publish repository branch
         if: github.event_name != 'pull_request'
         run: |
-          set -e
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan builds
