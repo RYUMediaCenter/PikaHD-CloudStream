@@ -25,13 +25,19 @@ jobs:
           distribution: temurin
           java-version: "11"
 
+      # Do not restore Gradle/Kotlin caches here: the previous run failed while
+      # Kotlin was reading a corrupted .kotlin_module cache entry.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "7.4"
+          cache-disabled: true
+
+      - name: Remove stale Gradle and Kotlin caches
+        run: rm -rf ~/.gradle/caches ~/.gradle/daemon ~/.gradle/kotlin-dsl
 
       - name: Build plugin and repository JSON
-        run: gradle --no-daemon --stacktrace make makePluginsJson
+        run: gradle --no-daemon --no-build-cache --refresh-dependencies --stacktrace make makePluginsJson
 
       - name: Stage plugin files
         shell: bash
