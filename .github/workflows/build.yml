@@ -1,0 +1,37 @@
+name: Build CloudStream plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build plugin
+        run: gradle make
+
+      - name: Upload .cs3 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudstream-plugin
+          path: "**/build/*.cs3"
+          if-no-files-found: error
