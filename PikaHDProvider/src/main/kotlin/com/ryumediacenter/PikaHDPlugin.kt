@@ -7,5 +7,6 @@ import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 class PikaHDPlugin : BasePlugin() {
     override fun load() {
         registerMainAPI(AuthorizedCatalogProvider())
+        registerMainAPI(PikaHDAnimeProvider())
     }
 }
