@@ -57,7 +57,7 @@ class AuthorizedCatalogProvider : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         return try {
-            val query = "mediatype:movies AND (licenseurl:http\\://creativecommons.org/publicdomain/mark/1.0/ OR licenseurl:https\\://creativecommons.org/publicdomain/zero/1.0/)"
+            val query = "mediatype:movies AND licenseurl:http*publicdomain*"
             val responseText = app.get("$mainUrl/advancedsearch.php?q=${query.encodeUri()}&fl[]=identifier&fl[]=title&fl[]=mediatype&rows=26&page=$page&output=json").text
             val featured = tryParseJson<SearchResult>(responseText)
             val homePageList = featured?.response?.docs?.map { it.toSearchResponse(this) } ?: emptyList()
@@ -74,7 +74,7 @@ class AuthorizedCatalogProvider : MainAPI() {
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
         return try {
-            val searchQuery = "mediatype:movies AND (licenseurl:http\\://creativecommons.org/publicdomain/mark/1.0/ OR licenseurl:https\\://creativecommons.org/publicdomain/zero/1.0/) AND (${query})"
+            val searchQuery = "mediatype:movies AND licenseurl:http*publicdomain* AND (${query})"
             val responseText = app.get("$mainUrl/advancedsearch.php?q=${searchQuery.encodeUri()}&fl[]=identifier&fl[]=title&fl[]=mediatype&rows=26&page=$page&output=json").text
             val res = tryParseJson<SearchResult>(responseText)
             res?.response?.docs?.map {
