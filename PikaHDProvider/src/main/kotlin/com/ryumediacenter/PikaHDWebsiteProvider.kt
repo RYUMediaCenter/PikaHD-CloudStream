@@ -1,6 +1,5 @@
 package com.ryumediacenter
 
-import com.lagradost.cloudstream3.ErrorLoadingException
 import com.lagradost.cloudstream3.HomePageList
 import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
@@ -22,7 +21,6 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import java.net.URI
 
 /**
  * Generic HTML catalogue parser for the user-authorized PikaHD website.
@@ -36,12 +34,7 @@ class PikaHDWebsiteProvider : MainAPI() {
     override var lang = "hi"
     override val hasMainPage = true
 
-    private fun absolute(base: String, value: String?): String? {
-        if (value.isNullOrBlank()) return null
-        return try { URI(base).resolve(value).toString() } catch (_: Exception) { null }
-    }
-
-    private suspend fun page(url: String): Document {
+        private suspend fun fetchDocument(url: String): Document {
         val response = app.get(url, headers = mapOf(
             "User-Agent" to "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36",
             "Accept-Language" to "hi-IN,hi;q=0.9,en;q=0.8"
@@ -90,7 +83,7 @@ class PikaHDWebsiteProvider : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         return try {
-            val doc = page(if (page <= 1) mainUrl else "$mainUrl/page/$page/")
+            val doc = fetchDocument(if (page <= 1) mainUrl else "$mainUrl/page/$page/")
             val results = cards(doc)
             newHomePageResponse(listOf(HomePageList("PikaHD Latest", results, true)), results.isNotEmpty())
         } catch (e: Exception) {
@@ -104,7 +97,7 @@ class PikaHDWebsiteProvider : MainAPI() {
         return try {
             val url = "$mainUrl/?s=${java.net.URLEncoder.encode(query, "UTF-8")}" +
                 if (page > 1) "&paged=$page" else ""
-            cards(page(url)).toNewSearchResponseList()
+            cards(fetchDocument(url)).toNewSearchResponseList()
         } catch (e: Exception) {
             com.lagradost.cloudstream3.mvvm.logError(e)
             null
@@ -112,7 +105,7 @@ class PikaHDWebsiteProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = page(url)
+        val doc = fetchDocument(url)
         val name = title(doc)
         val episodeLinks = doc.select("a[href]").mapNotNull { a ->
             val href = a.absUrl("href")
@@ -157,7 +150,7 @@ class PikaHDWebsiteProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val doc = page(data)
+        val doc = fetchDocument(data)
         var found = false
         doc.select("video source[src], video[src], source[src]").forEach { element ->
             val src = element.absUrl("src")
