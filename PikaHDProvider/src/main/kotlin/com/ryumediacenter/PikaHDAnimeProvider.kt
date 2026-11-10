@@ -17,7 +17,10 @@ import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 
-/** AniList metadata catalogue only; it does not provide video streams. */
+/**
+ * AniList-backed anime discovery. AniList supplies metadata only, not video streams.
+ * Playback is deliberately not fabricated or linked to unlicensed copies.
+ */
 class PikaHDAnimeProvider : MainAPI() {
     override var mainUrl = "https://graphql.anilist.co"
     override var name = "PikaHD Anime"
@@ -37,7 +40,7 @@ class PikaHDAnimeProvider : MainAPI() {
         siteUrl
     """.trimIndent()
 
-    private suspend fun post(query: String, variables: Map<String, Any>): JsonNode {
+    private suspend fun request(query: String, variables: Map<String, Any?>): JsonNode {
         val variablesJson = mapper.writeValueAsString(variables)
         val response = app.get(
             "$mainUrl?query=${query.encodeUri()}&variables=${variablesJson.encodeUri()}",
@@ -67,30 +70,41 @@ class PikaHDAnimeProvider : MainAPI() {
         }
     }
 
-    private suspend fun mediaPage(page: Int, sort: String, search: String? = null): List<JsonNode> {
+    private suspend fun mediaPage(
+        page: Int,
+        sort: String,
+        search: String? = null,
+        format: String? = null
+    ): List<JsonNode> {
         val query = """
-            query ($page: Int, $search: String) {
+            query ($page: Int, $search: String, $sort: [MediaSort], $format: MediaFormat) {
               Page(page: $page, perPage: 20) {
-                media(type: ANIME, search: $search, sort: $sort, isAdult: false) {
+                media(type: ANIME, search: $search, sort: $sort, format: $format, isAdult: false) {
                   $fields
                 }
               }
             }
         """.trimIndent()
-        val variables = mapOf("page" to page, "search" to (search ?: ""))
-        val media = post(query, variables).path("data").path("Page").path("media")
+        val variables = mapOf(
+            "page" to page,
+            "search" to search,
+            "sort" to listOf(sort),
+            "format" to format
+        )
+        val media = request(query, variables).path("data").path("Page").path("media")
         return if (media.isArray) media.toList() else emptyList()
     }
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         return try {
-            val popular = mediaPage(page, "POPULARITY_DESC").map { toSearch(it) }
-            val trending = mediaPage(page, "TRENDING_DESC").map { toSearch(it) }
-            newHomePageResponse(
-                listOf(
-                    HomePageList("Popular Anime", popular, true),
-                    HomePageList("Trending Anime", trending, true)
-                )
+            val sections = listOf(
+                HomePageList("Popular Anime", mediaPage(page, "POPULARITY_DESC").map { toSearch(it) }, true),
+                HomePageList("Trending Anime", mediaPage(page, "TRENDING_DESC").map { toSearch(it) }, true),
+                HomePageList("Top Rated Anime", mediaPage(page, "SCORE_DESC").map { toSearch(it) }, true),
+                HomePageList("Anime Movies", mediaPage(page, "POPULARITY_DESC", format = "MOVIE").map { toSearch(it) }, true),
+                HomePageList("Upcoming Anime", mediaPage(page, "POPULARITY_DESC", format = "TV").map { toSearch(it) }, true)
             )
+            newHomePageResponse(sections)
         } catch (e: Exception) {
             com.lagradost.cloudstream3.mvvm.logError(e)
             newHomePageResponse(emptyList(), false)
@@ -117,7 +131,7 @@ class PikaHDAnimeProvider : MainAPI() {
               }
             }
         """.trimIndent()
-        val media = post(query, mapOf("id" to id)).path("data").path("Media")
+        val media = request(query, mapOf("id" to id)).path("data").path("Media")
         if (media.isMissingNode || media.isNull) throw IllegalStateException("Anime not found")
         val type = if (media.path("format").asText() == "MOVIE") TvType.Movie else TvType.TvSeries
         val siteUrl = media.path("siteUrl").asText("https://anilist.co/anime/$id")
