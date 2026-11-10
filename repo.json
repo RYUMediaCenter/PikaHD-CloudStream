@@ -1,0 +1,8 @@
+{
+  "name": "PikaHD",
+  "description": "PikaHD CloudStream repository",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/RYUMediaCenter/PikaHD-CloudStream/builds/plugins.json"
+  ]
+}

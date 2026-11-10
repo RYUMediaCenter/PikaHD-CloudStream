@@ -1,0 +1,21 @@
+[
+    {
+        "fileHash": "sha256-0fd1a906bdbc1317cf779589b3a1a010f66b12e775e47f3e5eb9d7e896b5fd04",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/RYUMediaCenter/PikaHD-CloudStream",
+        "fileSize": 37610,
+        "status": 3,
+        "authors": [
+            "RYUMediaCenter"
+        ],
+        "tvTypes": [
+            "Movies",
+            "TvSeries"
+        ],
+        "version": 2,
+        "internalName": "PikaHDProvider",
+        "description": "PikaHD catalog and AniList-powered anime discovery. Anime metadata only; playback requires an authorized source.",
+        "url": "https://raw.githubusercontent.com/RYUMediaCenter/PikaHD-CloudStream/builds/PikaHDProvider.cs3",
+        "name": "PikaHDProvider"
+    }
+]
