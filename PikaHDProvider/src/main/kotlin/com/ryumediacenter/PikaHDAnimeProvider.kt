@@ -15,6 +15,7 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
+import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 
 /** AniList metadata catalogue only; it does not provide video streams. */
 class PikaHDAnimeProvider : MainAPI() {
@@ -37,13 +38,10 @@ class PikaHDAnimeProvider : MainAPI() {
     """.trimIndent()
 
     private suspend fun post(query: String, variables: Map<String, Any>): JsonNode {
-        val body = mapper.writeValueAsString(
-            mapOf("query" to query, "variables" to variables)
-        )
-        val response = app.post(
-            mainUrl,
-            data = body,
-            headers = mapOf("Accept" to "application/json", "Content-Type" to "application/json")
+        val variablesJson = mapper.writeValueAsString(variables)
+        val response = app.get(
+            "$mainUrl?query=${query.encodeUri()}&variables=${variablesJson.encodeUri()}",
+            headers = mapOf("Accept" to "application/json")
         ).text
         val root = mapper.readTree(response)
         val errors = root.path("errors")
@@ -70,21 +68,19 @@ class PikaHDAnimeProvider : MainAPI() {
     }
 
     private suspend fun mediaPage(page: Int, sort: String, search: String? = null): List<JsonNode> {
-        val searchArg = if (search == null) "" else ", search: $search"
         val query = """
             query ($page: Int, $search: String) {
               Page(page: $page, perPage: 20) {
-                media(type: ANIME, sort: $sort$searchArg, isAdult: false) {
+                media(type: ANIME, search: $search, sort: $sort, isAdult: false) {
                   $fields
                 }
               }
             }
         """.trimIndent()
-        val variables = if (search == null) mapOf("page" to page) else mapOf("page" to page, "search" to search)
+        val variables = mapOf("page" to page, "search" to (search ?: ""))
         val media = post(query, variables).path("data").path("Page").path("media")
         return if (media.isArray) media.toList() else emptyList()
     }
-
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         return try {
             val popular = mediaPage(page, "POPULARITY_DESC").map { toSearch(it) }
