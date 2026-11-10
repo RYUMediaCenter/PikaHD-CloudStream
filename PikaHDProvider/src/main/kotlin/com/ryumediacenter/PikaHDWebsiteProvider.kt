@@ -59,7 +59,7 @@ class PikaHDWebsiteProvider : MainAPI() {
 
     private fun isContentLink(href: String): Boolean {
         if (!href.startsWith(mainUrl)) return false
-        val path = URI(href).path.orEmpty()
+        val path = runCatching { java.net.URI(href).path }.getOrNull().orEmpty()
         return path.isNotBlank() && path != "/" &&
             !path.startsWith("/wp-") && !path.startsWith("/tag/") &&
             !path.startsWith("/category/") && !path.startsWith("/page/")
@@ -106,7 +106,7 @@ class PikaHDWebsiteProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val doc = fetchDocument(url)
-        val name = title(doc)
+        val titleName = title(doc)
         val episodeLinks = doc.select("a[href]").mapNotNull { a ->
             val href = a.absUrl("href")
             val label = a.text().trim().ifBlank { a.selectFirst("img")?.attr("alt").orEmpty() }
@@ -130,14 +130,14 @@ class PikaHDWebsiteProvider : MainAPI() {
                     posterUrl = poster
                 }
             }
-            return newTvSeriesLoadResponse(name, url, TvType.TvSeries, episodes) {
+            return newTvSeriesLoadResponse(titleName, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
                 this.plot = plot
                 this.year = year
             }
         }
 
-        return newMovieLoadResponse(name, url, TvType.Movie, url) {
+        return newMovieLoadResponse(titleName, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = plot
             this.year = year
