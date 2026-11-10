@@ -1,7 +1,7 @@
-version = 2
+version = 3
 
 cloudstream {
-    description = "PikaHD catalog and AniList-powered anime discovery. Anime metadata only; playback requires an authorized source."
+    description = "PikaHD website catalogue parser with anime metadata discovery. Playback supports direct, accessible media and supported embeds."
     authors = listOf("RYUMediaCenter")
     status = 3
     tvTypes = listOf("Movies", "TvSeries")
